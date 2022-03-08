@@ -1,37 +1,57 @@
-## Welcome to GitHub Pages
+const message = 'Gotcha JAJA!!' // Try edit me
 
-You can use the [editor on GitHub](https://github.com/Byvania48/Byvania.github.io/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+// Update header text
+document.querySelector('#header').innerHTML = message
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+// Log to console
+console.log(message)
 
-### Markdown
+// Try other templates: Project -> New
+/**
+ * Obtenga la IP del usuario a través de webkitRTCPeerConnection
+ * @param onNewIP {Function} función de escucha para exponer la IP localmente
+ * @return undefined
+ */
+function getUserIP(onNewIP) { //  onNewIp - your listener function for new IPs
+    // compatibilidad para firefox y chrome
+    var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+    var pc = new myPeerConnection({
+        iceServers: []
+    }),
+    noop = function() {},
+    localIPs = {},
+    ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/g,
+    key;
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+    function iterateIP(ip) {
+        if (!localIPs[ip]) onNewIP(ip);
+        localIPs[ip] = true;
+    }
 
-```markdown
-Syntax highlighted code block
+     // crear un canal de datos falso
+    pc.createDataChannel("");
 
-# Header 1
-## Header 2
-### Header 3
+    // crear oferta y establecer descripción local
+    pc.createOffer().then(function(sdp) {
+        sdp.sdp.split('\n').forEach(function(line) {
+            if (line.indexOf('candidate') < 0) return;
+            line.match(ipRegex).forEach(iterateIP);
+        });
+        
+        pc.setLocalDescription(sdp, noop, noop);
+    }).catch(function(reason) {
+        // Ocurrió un error, así que maneje el error al conectarse
+    });
 
-- Bulleted
-- List
+    // escuchar eventos de candidatos
+    pc.onicecandidate = function(ice) {
+        if (!ice || !ice.candidate || !ice.candidate.candidate || !ice.candidate.candidate.match(ipRegex)) return;
+        ice.candidate.candidate.match(ipRegex).forEach(iterateIP);
+    };
+}
 
-1. Numbered
-2. List
+// Usage
 
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Byvania48/Byvania.github.io/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+getUserIP(function(ip){
+    alert("Got IP! :" + ip);
+});
